@@ -10268,7 +10268,7 @@ html.no-js .product-tabs__tab-item{
     left:calc(var(--spacing-calc) * -1);
     right:calc(var(--spacing-calc) * -1);
     padding-bottom:calc(var(--spacing-calc) + (4px * 1));
-    padding-bottom:calc(var(--spacing-calc) + calc(4px * 1));
+    padding-bottom:calc(var(--spacing-calc) + calc(4px * 1)); 
     padding-bottom:calc(var(--spacing-calc) + var(--spacing-1));
   }
 [data-layout-type="grid"] .product-item--border-on-hover .product-item__variant-info{
