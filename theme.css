@@ -19313,34 +19313,7 @@ input,textarea,select,button {
 body { line-height: 1.6; }
 h1,h2,h3 { line-height: 1.25; }
 
-/* --- Custom: Global Equal Height for Product Cards (Grid & Slider Fix) --- */
 
-/* 1. Set up the containers to allow stretching */
-.collection__products,
-.featured-collection-grid__products,
-.featured-collection-slider .swiper-wrapper {
-  align-items: stretch !important;
-}
-
-/* 2. Make each card and its inner content fill the available height */
-.product-item,
-.featured-collection-slider .swiper-slide {
-  display: flex !important;
-  flex-direction: column !important;
-  height: auto !important; /* Allow the slide/card to grow */
-}
-
-.product-item__inner {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1; /* This is the key: forces the content area to expand */
-  height: 100%;
-}
-
-/* 3. Align the text content (title, price) to the bottom */
-.product-item__meta {
-  margin-top: auto;
-}
 
 
 
