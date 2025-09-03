@@ -19313,3 +19313,8 @@ h1,h2,h3 { line-height: 1.25; }
 
 
 
+/* 2. Increase space between product rows to prevent hover overlap */
+.collection__products {
+  row-gap: auto !important;
+  grid-row-gap: 72px !important; /* Fallback for older browsers */
+}
