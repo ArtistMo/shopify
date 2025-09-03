@@ -52,13 +52,13 @@
    [data-section-type="quick-cart"] .quantity {
     display: flex; /* Helps align inner items */
     border: 1px solid #EAE6DD; /* Apply border directly to the container */
-    border-radius: 8px; /* Apply radius to the container */
+    border-radius: 8px !important; /* Apply radius to the container */
     overflow: hidden; /* This clips the corners of the inner elements */
   }
 
   .quick-cart .quantity__button,
   .quick-cart .quantity__input {
-    border: none;
+    border: none !important;
   }
   
   .quick-cart .quantity__button {
@@ -442,3 +442,4 @@
   ]
 }  
 {% endschema %}
+
