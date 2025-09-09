@@ -19306,15 +19306,66 @@ body { line-height: 1.6; }
 h1,h2,h3 { line-height: 1.25; }
 
 
-
-
-
-
-
-
-
-/* 2. Increase space between product rows to prevent hover overlap */
+/* Increase space between product rows to prevent hover overlap */
 .collection__products {
   row-gap: auto !important;
   grid-row-gap: 72px !important; /* Fallback for older browsers */
+}
+
+/* --- Rounded Product Boxes on Collection Page --- */
+
+/* This rule rounds the corners of the product image container. */
+.product-item__media {
+  border-radius: 12px;
+  overflow: hidden; /* This is important to ensure the image is clipped to the rounded corners. */
+}
+
+/* This rule rounds the border and background that appears when you hover over a product. */
+.product-item__inner .product-item__hover-container {
+  border-radius: 12px !important;
+}
+/* Newsletter container */
+.footer__newsletter-inner {
+  display: flex;
+  flex-direction: column;   /* Stack input and button */
+  align-items: stretch;     /* Full width alignment */
+  width: 100%;
+  max-width: 400px;         /* Optional: keeps it neat */
+  margin: 0 auto;           /* Center align in footer */
+  gap: 12px;
+}
+
+/* Input styling */
+.newsletter-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #6b4a2b;     /* match your theme color */
+  border-radius: 6px;
+  font-size: 16px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.newsletter-input:focus {
+  border-color: #000;            /* highlight on focus */
+  box-shadow: 0 0 4px rgba(0,0,0,0.15);
+}
+
+/* Button styling */
+.newsletter-button {
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  background: #6b4a2b;           /* match theme primary */
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+.newsletter-button:hover {
+  background: #4a2f1a;           /* darker hover state */
 }
