@@ -793,7 +793,7 @@
   })();
 </script>
 
-<script>
+{% comment %} <script>
   document.addEventListener('DOMContentLoaded', function () {
     // Find the bulk order button we tagged with an ID
     const bulkOrderButton = document.getElementById('product-page-bulk-order-btn');
@@ -823,6 +823,60 @@
 
         // Construct the final URL for the bulk order page
         const bulkOrderUrl = `/pages/bulk-order?product=${productHandle}&variant=${variantId}`;
+        // Redirect the user
+        window.location.href = bulkOrderUrl;
+      });
+    }
+  });
+</script> {% endcomment %}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const bulkOrderButton = document.getElementById('product-page-bulk-order-btn');
+
+    if (bulkOrderButton) {
+      bulkOrderButton.addEventListener('click', function() {
+        // Get the full product data from the JSON embedded on the page
+        const productJsonText = document.getElementById('ProductJson-{{ section.id }}').textContent;
+        if (!productJsonText) {
+          console.error("O'Stori Bulk Order: Product JSON not found.");
+          return;
+        }
+        const productData = JSON.parse(productJsonText);
+
+        // Find the selected variant ID from the product form
+        const variantIdInput = document.querySelector('form[action="/cart/add"] [name="id"]');
+        if (!variantIdInput) {
+          console.error("O'Stori Bulk Order: Variant ID input not found.");
+          return;
+        }
+        const selectedVariantId = parseInt(variantIdInput.value, 10);
+
+        // Find the full data for the selected variant
+        const selectedVariant = productData.variants.find(v => v.id === selectedVariantId);
+        if (!selectedVariant) {
+          console.error("O'Stori Bulk Order: Selected variant data not found.");
+          return;
+        }
+
+        // Determine the correct image URL
+        let imageUrl = productData.featured_image; // Fallback to main product image
+        if (selectedVariant.featured_media) {
+           // Find the full media object from the product's media list
+           const featuredMedia = productData.media.find(m => m.id === selectedVariant.featured_media.id);
+           if (featuredMedia) {
+               imageUrl = featuredMedia.src;
+           }
+        }
+
+        // Prepare the data for the URL (encoding makes it safe to pass)
+        const productTitle = encodeURIComponent(productData.title);
+        const variantSku = encodeURIComponent(selectedVariant.sku || 'N/A');
+        const encodedImageUrl = encodeURIComponent(imageUrl);
+
+        // Construct the final URL with all the data
+        const bulkOrderUrl = `/pages/bulk-order?title=${productTitle}&sku=${variantSku}&image=${encodedImageUrl}`;
+
         // Redirect the user
         window.location.href = bulkOrderUrl;
       });
