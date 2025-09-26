@@ -1,0 +1,1063 @@
+{% doc %}
+  @prompt
+    Split Scroll Canvas
+    
+    Concept: Immersive split screen where one side is static artisan imagery and the other side scrolls through the form.
+    
+    Desktop: Left = full-height artisan workshop photo, Right = scrollable compact form.
+    
+    Mobile: Image collapses into top banner, form scrolls below.
+    
+    Why: Gives premium immersive feel without cluttering the form.
+    
+    Schema Controls:
+    
+    Upload artisan imagery (loom, dye pots, block printing).
+    
+    Overlay opacity (0–60%).
+    
+    Heading and CTA editable.
+    
+    UX Micro-interactions:
+    
+    Background image has a parallax scroll effect.
+    
+    Button hover triggers a gold shimmer animation.
+    
+    On success, artisan image subtly zooms as confirmation overlays.
+    
+    Prompt:
+    "Create a Bulk Order form in a split-scroll layout. Desktop: left side fixed artisan imagery (loom or fabric texture), right side scrollable form. Mobile: image collapses into top banner. Fields: Product Name + SKU auto, Your Name, Email*, Contact Number optional, Quantity Required* numeric, Order Type* dropdown (Bulk Order / Corporate Gifts / Personalised Gifts), Expected Delivery Date optional, Your Message optional. Schema controls: image upload, overlay opacity, text/CTA. Add micro interactions: parallax background scroll, gold shimmer button hover, zoom-in artisan image with confirmation overlay after submit."*, Basically, the bulk order button is present in every product page, and when a user clicks on that, it should redirect to the bulk order page, mapping it to the product clicked by the user
+    so replace the Artisan imagery with that selected product , Product imagery height should not overflow from the section height
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+    .ai-bulk-order-container-{{ ai_gen_id }} {
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ai-bulk-order-image-section-{{ ai_gen_id }} {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 50%;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .ai-bulk-order-image-wrapper-{{ ai_gen_id }} {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .ai-bulk-order-image-{{ ai_gen_id }} {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      object-fit: cover;
+      object-position: center;
+      transform: scale(1.05);
+      transition: transform 0.3s ease;
+    }
+
+    .ai-bulk-order-image-overlay-{{ ai_gen_id }} {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, {{ block.settings.overlay_opacity | divided_by: 100.0 }});
+      z-index: 2;
+    }
+
+    .ai-bulk-order-image-placeholder-{{ ai_gen_id }} {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #8b4513 0%, #4a250a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ai-bulk-order-image-placeholder-{{ ai_gen_id }} svg {
+      width: 200px;
+      height: 200px;
+      opacity: 0.3;
+      color: #fdfbf5;
+    }
+
+    .ai-bulk-order-empty-state-{{ ai_gen_id }} {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fdfbf5;
+      text-align: center;
+      font-size: 16px;
+      opacity: 0.8;
+    }
+
+    .ai-bulk-order-product-badge-{{ ai_gen_id }} {
+      position: absolute;
+      bottom: 30px;
+      left: 30px;
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 12px 20px;
+      border-radius: 8px;
+      z-index: 3;
+      backdrop-filter: blur(10px);
+    }
+
+    .ai-bulk-order-product-title-{{ ai_gen_id }} {
+      font-family: {{ settings.font_heading.family }}, serif;
+      font-size: 18px;
+      color: #4a250a;
+      margin: 0 0 4px;
+      font-weight: 600;
+    }
+
+    .ai-bulk-order-product-price-{{ ai_gen_id }} {
+      font-family: {{ settings.font_body.family }}, sans-serif;
+      font-size: 16px;
+      color: #8b4513;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .ai-bulk-order-form-section-{{ ai_gen_id }} {
+      margin-left: 50%;
+      width: 50%;
+      min-height: 100vh;
+      background-color: {{ block.settings.form_background_color | color_modify: 'alpha', block.settings.form_background_opacity | divided_by: 100.0 }};
+      padding: 60px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ai-bulk-order-form-container-{{ ai_gen_id }} {
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .ai-bulk-order-form-header-{{ ai_gen_id }} {
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    .ai-bulk-order-form-title-{{ ai_gen_id }} {
+      font-family: {{ settings.font_heading.family }}, serif;
+      font-size: {{ block.settings.heading_size }}px;
+      color: {{ block.settings.text_color }};
+      margin: 0 0 16px;
+      line-height: 1.2;
+    }
+
+    .ai-bulk-order-form-subtitle-{{ ai_gen_id }} {
+      font-family: {{ settings.font_body.family }}, sans-serif;
+      font-size: {{ block.settings.subtitle_size }}px;
+      color: {{ block.settings.text_color }};
+      opacity: 0.8;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .ai-bulk-order-form-{{ ai_gen_id }} {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .ai-bulk-order-form-group-{{ ai_gen_id }} {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ai-bulk-order-form-row-{{ ai_gen_id }} {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .ai-bulk-order-form-label-{{ ai_gen_id }} {
+      font-family: {{ settings.font_body.family }}, sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: {{ block.settings.text_color }};
+      margin-bottom: 4px;
+    }
+
+    .ai-bulk-order-form-required-{{ ai_gen_id }} {
+      color: #d21404;
+    }
+
+    .ai-bulk-order-form-input-{{ ai_gen_id }},
+    .ai-bulk-order-form-select-{{ ai_gen_id }},
+    .ai-bulk-order-form-textarea-{{ ai_gen_id }} {
+      font-family: {{ settings.font_body.family }}, sans-serif;
+      padding: 12px 16px;
+      border: 2px solid {{ block.settings.input_border_color }};
+      border-radius: {{ block.settings.input_border_radius }}px;
+      background-color: {{ block.settings.input_background_color }};
+      color: {{ block.settings.text_color }};
+      font-size: 16px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .ai-bulk-order-form-input-{{ ai_gen_id }}:focus,
+    .ai-bulk-order-form-select-{{ ai_gen_id }}:focus,
+    .ai-bulk-order-form-textarea-{{ ai_gen_id }}:focus {
+      outline: none;
+      border-color: {{ block.settings.accent_color }};
+      box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+    }
+
+    .ai-bulk-order-form-input-{{ ai_gen_id }}[readonly] {
+      background-color: #f8f8f8;
+      color: #666;
+    }
+
+    .ai-bulk-order-form-textarea-{{ ai_gen_id }} {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .ai-bulk-order-form-button-{{ ai_gen_id }} {
+      position: relative;
+      font-family: {{ settings.font_body.family }}, sans-serif;
+      padding: 16px 32px;
+      background-color: {{ block.settings.button_color }};
+      color: {{ block.settings.button_text_color }};
+      border: none;
+      border-radius: {{ block.settings.button_border_radius }}px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      overflow: hidden;
+      text-transform: {% if settings.capitalize_buttons %}uppercase{% else %}none{% endif %};
+      letter-spacing: {{ settings.buttons_letter_spacing | default: 0 | divided_by: 100.0 }}em;
+    }
+
+    .ai-bulk-order-form-button-{{ ai_gen_id }}:hover {
+      background-color: {{ block.settings.button_hover_color | color_modify: 'alpha', block.settings.button_hover_opacity | divided_by: 100.0 }};
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .ai-bulk-order-form-button-{{ ai_gen_id }}::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.4), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .ai-bulk-order-form-button-{{ ai_gen_id }}:hover::before {
+      left: 100%;
+    }
+
+    .ai-bulk-order-success-overlay-{{ ai_gen_id }} {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.5s ease;
+    }
+
+    .ai-bulk-order-success-overlay-{{ ai_gen_id }}.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .ai-bulk-order-success-content-{{ ai_gen_id }} {
+      background-color: {{ block.settings.form_background_color }};
+      padding: 40px;
+      border-radius: 12px;
+      text-align: center;
+      max-width: 400px;
+      transform: scale(0.8);
+      transition: transform 0.5s ease;
+    }
+
+    .ai-bulk-order-success-overlay-{{ ai_gen_id }}.active .ai-bulk-order-success-content-{{ ai_gen_id }} {
+      transform: scale(1);
+    }
+
+    .ai-bulk-order-success-icon-{{ ai_gen_id }} {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 20px;
+      color: #435830;
+    }
+
+    .ai-bulk-order-success-title-{{ ai_gen_id }} {
+      font-family: {{ settings.font_heading.family }}, serif;
+      font-size: 24px;
+      color: {{ block.settings.text_color }};
+      margin: 0 0 12px;
+    }
+
+    .ai-bulk-order-success-message-{{ ai_gen_id }} {
+      font-family: {{ settings.font_body.family }}, sans-serif;
+      color: {{ block.settings.text_color }};
+      opacity: 0.8;
+      margin: 0;
+    }
+
+    .ai-bulk-order-error-message-{{ ai_gen_id }} {
+      color: #d21404;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    @media screen and (max-width: 1024px) {
+      .ai-bulk-order-container-{{ ai_gen_id }} {
+        flex-direction: column;
+        min-height: auto;
+      }
+
+      .ai-bulk-order-image-section-{{ ai_gen_id }} {
+        position: relative;
+        width: 100%;
+        height: 50vh;
+        max-height: 400px;
+      }
+
+      .ai-bulk-order-image-{{ ai_gen_id }} {
+        transform: scale(1);
+      }
+
+      .ai-bulk-order-product-badge-{{ ai_gen_id }} {
+        bottom: 20px;
+        left: 20px;
+        padding: 8px 16px;
+      }
+
+      .ai-bulk-order-product-title-{{ ai_gen_id }} {
+        font-size: 16px;
+      }
+
+      .ai-bulk-order-product-price-{{ ai_gen_id }} {
+        font-size: 14px;
+      }
+
+      .ai-bulk-order-form-section-{{ ai_gen_id }} {
+        margin-left: 0;
+        width: 100%;
+        min-height: auto;
+        padding: 40px 20px;
+      }
+
+      .ai-bulk-order-form-row-{{ ai_gen_id }} {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+
+    @media screen and (max-width: 480px) {
+      .ai-bulk-order-image-section-{{ ai_gen_id }} {
+        height: 40vh;
+        max-height: 300px;
+      }
+
+      .ai-bulk-order-form-section-{{ ai_gen_id }} {
+        padding: 30px 16px;
+      }
+
+      .ai-bulk-order-form-title-{{ ai_gen_id }} {
+        font-size: {{ block.settings.heading_size | times: 0.8 }}px;
+      }
+
+      .ai-bulk-order-form-subtitle-{{ ai_gen_id }} {
+        font-size: {{ block.settings.subtitle_size | times: 0.9 }}px;
+      }
+    }
+
+  .shopify-section-group-footer-group {
+    position: relative;
+    z-index: 2;
+  }
+{% endstyle %}
+
+<bulk-order-form-{{ ai_gen_id }}
+  class="ai-bulk-order-container-{{ ai_gen_id }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="ai-bulk-order-image-section-{{ ai_gen_id }}">
+    <div class="ai-bulk-order-image-wrapper-{{ ai_gen_id }}">
+      {% comment %} Get product from URL parameter or current product {% endcomment %}
+      {% comment %}
+        {% liquid
+          assign bulk_product_handle = request.url | split: '?' | last | split: '&' | where: 'contains', 'product=' | first | split: '=' | last
+          if bulk_product_handle != blank
+            assign bulk_product = all_products[bulk_product_handle]
+          else
+            assign bulk_product = product
+          endif
+        %}
+      {% endcomment %}
+
+      {%- comment -%} WITH THIS NEW, CORRECTED BLOCK {%- endcomment -%}
+{% liquid
+  assign bulk_product_handle = request.params.product
+  assign bulk_variant_id = request.params.variant
+
+  if bulk_product_handle != blank
+    assign bulk_product = all_products[bulk_product_handle]
+  else
+    assign bulk_product = null
+  endif
+
+  assign bulk_variant = null
+  if bulk_product
+    if bulk_variant_id != blank
+      assign bulk_variant_id_number = bulk_variant_id | times: 1
+      assign bulk_variant = bulk_product.variants | where: 'id', bulk_variant_id_number | first
+    endif
+
+    if bulk_variant == null
+      assign bulk_variant = bulk_product.selected_or_first_available_variant
+    endif
+  endif
+%}
+
+      {% if bulk_product and bulk_product.featured_image %}
+        <img
+          src="{{ bulk_product.featured_image | image_url: width: 1200 }}"
+          alt="{{ bulk_product.featured_image.alt | escape }}"
+          class="ai-bulk-order-image-{{ ai_gen_id }}"
+          loading="lazy"
+          width="{{ bulk_product.featured_image.width }}"
+          height="{{ bulk_product.featured_image.height }}"
+        >
+        <div class="ai-bulk-order-product-badge-{{ ai_gen_id }}">
+          <h3 class="ai-bulk-order-product-title-{{ ai_gen_id }}">{{ bulk_product.title }}</h3>
+          <p class="ai-bulk-order-product-price-{{ ai_gen_id }}">{{ bulk_variant.price | money }}</p>
+        </div>
+      {% elsif block.settings.fallback_image %}
+        <img
+          src="{{ block.settings.fallback_image | image_url: width: 1200 }}"
+          alt="{{ block.settings.fallback_image.alt | escape }}"
+          class="ai-bulk-order-image-{{ ai_gen_id }}"
+          loading="lazy"
+          width="{{ block.settings.fallback_image.width }}"
+          height="{{ block.settings.fallback_image.height }}"
+        >
+      {% else %}
+        <div class="ai-bulk-order-image-placeholder-{{ ai_gen_id }}">
+          {{ 'product-1' | placeholder_svg_tag }}
+          <div class="ai-bulk-order-empty-state-{{ ai_gen_id }}">Product image will appear here</div>
+        </div>
+      {% endif %}
+      <div class="ai-bulk-order-image-overlay-{{ ai_gen_id }}"></div>
+    </div>
+  </div>
+
+  <div class="ai-bulk-order-form-section-{{ ai_gen_id }}">
+    <div class="ai-bulk-order-form-container-{{ ai_gen_id }}">
+      <div class="ai-bulk-order-form-header-{{ ai_gen_id }}">
+        <h2 class="ai-bulk-order-form-title-{{ ai_gen_id }}">{{ block.settings.form_heading }}</h2>
+        <p class="ai-bulk-order-form-subtitle-{{ ai_gen_id }}">{{ block.settings.form_subtitle }}</p>
+      </div>
+
+      {% comment %} {%- form 'contact' -%}
+        <input type="hidden" name="contact[form_type]" value="bulk_order">
+        {% if bulk_product %}
+          <input type="hidden" name="contact[product_id]" value="{{ bulk_product.id }}">
+          <input type="hidden" name="contact[product_handle]" value="{{ bulk_product.handle }}">
+        {% endif %}
+
+        <div class="ai-bulk-order-form-{{ ai_gen_id }}">
+          <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
+            <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+              <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Product Name </label>
+              <input
+                type="text"
+                name="contact[product_sku]"
+                class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                value="{{ bulk_variant.sku | default: 'N/A' }}"
+                readonly
+              >
+            </div>
+            <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+              <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> SKU </label>
+              <input
+                type="text"
+                name="contact[product_sku]"
+                class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                value="{{ bulk_product.selected_variant.sku | default: bulk_product.variants.first.sku | default: 'N/A' }}"
+                readonly
+              >
+            </div>
+          </div>
+
+          <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
+            <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+              <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+                Your Name <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
+              </label>
+              <input
+                type="text"
+                name="contact[name]"
+                class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                value="{{ form.name }}"
+                required
+                {% if form.errors contains 'name' %}
+                  aria-invalid="true"
+                  aria-describedby="ai-bulk-order-name-error-{{ ai_gen_id }}"
+                {% endif %}
+              >
+              {%- if form.errors contains 'name' -%}
+                <div id="ai-bulk-order-name-error-{{ ai_gen_id }}" class="ai-bulk-order-error-message-{{ ai_gen_id }}">
+                  {{ form.errors.messages.name }}
+                </div>
+              {%- endif -%}
+            </div>
+            <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+              <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+                Email <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
+              </label>
+              <input
+                type="email"
+                name="contact[email]"
+                class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                value="{{ form.email }}"
+                required
+                {% if form.errors contains 'email' %}
+                  aria-invalid="true"
+                  aria-describedby="ai-bulk-order-email-error-{{ ai_gen_id }}"
+                {% endif %}
+              >
+              {%- if form.errors contains 'email' -%}
+                <div id="ai-bulk-order-email-error-{{ ai_gen_id }}" class="ai-bulk-order-error-message-{{ ai_gen_id }}">
+                  {{ form.errors.messages.email }}
+                </div>
+              {%- endif -%}
+            </div>
+          </div>
+
+          <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
+            <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+              <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Contact Number </label>
+              <input
+                type="tel"
+                name="contact[phone]"
+                class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                value="{{ form.phone }}"
+              >
+            </div>
+            <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+              <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+                Quantity Required <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
+              </label>
+              <input
+                type="number"
+                name="contact[quantity]"
+                class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                min="1"
+                placeholder="Enter quantity"
+                required
+              >
+            </div>
+          </div>
+
+          <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
+            <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+              <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+                Order Type <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
+              </label>
+              <select
+                name="contact[order_type]"
+                class="ai-bulk-order-form-select-{{ ai_gen_id }}"
+                required
+              >
+                <option value="">Select order type</option>
+                <option value="bulk_order">Bulk Order</option>
+                <option value="corporate_gifts">Corporate Gifts</option>
+                <option value="personalised_gifts">Personalised Gifts</option>
+              </select>
+            </div>
+            <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+              <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Expected Delivery Date </label>
+              <input
+                type="text"
+                name="contact[delivery_date]"
+                class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                placeholder="DD/MM/YYYY"
+              >
+            </div>
+          </div>
+
+          <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+            <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Your Message </label>
+            <textarea
+              name="contact[message]"
+              class="ai-bulk-order-form-textarea-{{ ai_gen_id }}"
+              placeholder="Tell us about your requirements, customization needs, or any special requests..."
+            ></textarea>
+          </div>
+
+          <button
+            type="submit"
+            class="ai-bulk-order-form-button-{{ ai_gen_id }}"
+          >
+            {{ block.settings.button_text }}
+          </button>
+        </div>
+      {%- endform -%} {% endcomment %}
+
+{%- form 'contact' -%}
+  <input type="hidden" name="contact[form_type]" value="bulk_order">
+  {% if bulk_product %}
+    <input type="hidden" name="contact[product_id]" value="{{ bulk_product.id }}">
+    <input type="hidden" name="contact[product_handle]" value="{{ bulk_product.handle }}">
+    <input type="hidden" name="contact[variant_id]" value="{{ bulk_variant.id }}">
+  {% endif %}
+
+  <div class="ai-bulk-order-form-{{ ai_gen_id }}">
+    <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
+      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+          Product Name
+        </label>
+        <input
+          type="text"
+          name="contact[product_name]"
+          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+          value="{{ bulk_product.title | default: 'N/A' }}"
+          readonly
+        >
+      </div>
+      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+          SKU
+        </label>
+        <input
+          type="text"
+          name="contact[product_sku]"
+          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+          value="{{ bulk_variant.sku | default: 'N/A' }}"
+          readonly
+        >
+      </div>
+    </div>
+
+    <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
+      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+          Your Name <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
+        </label>
+        <input
+          type="text"
+          name="contact[name]"
+          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+          value="{{ form.name }}"
+          required
+          {% if form.errors contains 'name' %}
+            aria-invalid="true"
+            aria-describedby="ai-bulk-order-name-error-{{ ai_gen_id }}"
+          {% endif %}
+        >
+        {%- if form.errors contains 'name' -%}
+          <div id="ai-bulk-order-name-error-{{ ai_gen_id }}" class="ai-bulk-order-error-message-{{ ai_gen_id }}">
+            {{ form.errors.messages.name }}
+          </div>
+        {%- endif -%}
+      </div>
+      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+          Email <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
+        </label>
+        <input
+          type="email"
+          name="contact[email]"
+          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+          value="{{ form.email }}"
+          required
+          {% if form.errors contains 'email' %}
+            aria-invalid="true"
+            aria-describedby="ai-bulk-order-email-error-{{ ai_gen_id }}"
+          {% endif %}
+        >
+        {%- if form.errors contains 'email' -%}
+          <div id="ai-bulk-order-email-error-{{ ai_gen_id }}" class="ai-bulk-order-error-message-{{ ai_gen_id }}">
+            {{ form.errors.messages.email }}
+          </div>
+        {%- endif -%}
+      </div>
+    </div>
+
+    <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
+      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Contact Number </label>
+        <input
+          type="tel"
+          name="contact[phone]"
+          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+          value="{{ form.phone }}"
+        >
+      </div>
+      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+          Quantity Required <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
+        </label>
+        <input
+          type="number"
+          name="contact[quantity]"
+          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+          min="1"
+          placeholder="Enter quantity"
+          required
+        >
+      </div>
+    </div>
+
+    <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
+      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+          Order Type <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
+        </label>
+        <select
+          name="contact[order_type]"
+          class="ai-bulk-order-form-select-{{ ai_gen_id }}"
+          required
+        >
+          <option value="">Select order type</option>
+          <option value="bulk_order">Bulk Order</option>
+          <option value="corporate_gifts">Corporate Gifts</option>
+          <option value="personalised_gifts">Personalised Gifts</option>
+        </select>
+      </div>
+      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Expected Delivery Date </label>
+        <input
+          type="text"
+          name="contact[delivery_date]"
+          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+          placeholder="DD/MM/YYYY"
+        >
+      </div>
+    </div>
+
+    <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+      <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Your Message </label>
+      <textarea
+        name="contact[message]"
+        class="ai-bulk-order-form-textarea-{{ ai_gen_id }}"
+        placeholder="Tell us about your requirements, customization needs, or any special requests..."
+      ></textarea>
+    </div>
+
+    <button
+      type="submit"
+      class="ai-bulk-order-form-button-{{ ai_gen_id }}"
+    >
+      {{ block.settings.button_text }}
+    </button>
+  </div>
+{%- endform -%}
+
+    </div>
+  </div>
+
+  <div class="ai-bulk-order-success-overlay-{{ ai_gen_id }}">
+    <div class="ai-bulk-order-success-content-{{ ai_gen_id }}">
+      <svg class="ai-bulk-order-success-icon-{{ ai_gen_id }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+      <h3 class="ai-bulk-order-success-title-{{ ai_gen_id }}">Order Submitted!</h3>
+      <p class="ai-bulk-order-success-message-{{ ai_gen_id }}">{{ block.settings.success_message }}</p>
+    </div>
+  </div>
+</bulk-order-form-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class BulkOrderForm{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+        this.form = null;
+        this.imageElement = null;
+        this.successOverlay = null;
+      }
+
+      connectedCallback() {
+        this.form = this.querySelector('form');
+        this.imageElement = this.querySelector('.ai-bulk-order-image-{{ ai_gen_id }}');
+        this.successOverlay = this.querySelector('.ai-bulk-order-success-overlay-{{ ai_gen_id }}');
+        
+        this.setupParallaxEffect();
+        this.setupFormSubmission();
+      }
+
+      setupParallaxEffect() {
+        if (!this.imageElement || window.innerWidth <= 1024) return;
+
+        let ticking = false;
+
+        const updateParallax = () => {
+          const scrolled = window.pageYOffset;
+          const parallax = scrolled * 0.3;
+          
+          if (this.imageElement) {
+            this.imageElement.style.transform = `scale(1.05) translateY(${parallax}px)`;
+          }
+          
+          ticking = false;
+        };
+
+        const requestTick = () => {
+          if (!ticking) {
+            requestAnimationFrame(updateParallax);
+            ticking = true;
+          }
+        };
+
+        window.addEventListener('scroll', requestTick, { passive: true });
+      }
+
+      setupFormSubmission() {
+        if (!this.form) return;
+
+        this.form.addEventListener('submit', (e) => {
+          const formData = new FormData(this.form);
+          
+          {% if form.posted_successfully? %}
+            this.showSuccessOverlay();
+          {% endif %}
+        });
+
+        {% if form.posted_successfully? %}
+          this.showSuccessOverlay();
+        {% endif %}
+      }
+
+      showSuccessOverlay() {
+        if (this.successOverlay) {
+          this.successOverlay.classList.add('active');
+          
+          if (this.imageElement) {
+            this.imageElement.style.transform = 'scale(1.1)';
+            this.imageElement.style.transition = 'transform 1s ease';
+          }
+
+          setTimeout(() => {
+            this.successOverlay.classList.remove('active');
+            if (this.imageElement) {
+              this.imageElement.style.transform = 'scale(1.05)';
+            }
+          }, 4000);
+        }
+      }
+    }
+
+    customElements.define('bulk-order-form-{{ ai_gen_id }}', BulkOrderForm{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Bulk order form",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Product imagery"
+    },
+    {
+      "type": "paragraph",
+      "content": "The form will automatically display the product image from the URL parameter (?product=product-handle) or current product page. Set a fallback image below."
+    },
+    {
+      "type": "image_picker",
+      "id": "fallback_image",
+      "label": "Fallback image"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "%",
+      "label": "Image overlay opacity",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Form content"
+    },
+    {
+      "type": "text",
+      "id": "form_heading",
+      "label": "Form heading",
+      "default": "Bulk Order Request"
+    },
+    {
+      "type": "text",
+      "id": "form_subtitle",
+      "label": "Form subtitle",
+      "default": "Get personalized pricing for large quantities and corporate orders"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text",
+      "default": "Submit Order Request"
+    },
+    {
+      "type": "textarea",
+      "id": "success_message",
+      "label": "Success message",
+      "default": "Thank you for your bulk order request. Our team will contact you within 24 hours with a personalized quote."
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 24,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "subtitle_size",
+      "min": 14,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Subtitle size",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "form_background_color",
+      "label": "Form background",
+      "default": "#fdfbf5"
+    },
+    {
+      "type": "range",
+      "id": "form_background_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Form background opacity",
+      "default": 100
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#4a250a"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#8b4513"
+    },
+    {
+      "type": "color",
+      "id": "input_background_color",
+      "label": "Input background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "input_border_color",
+      "label": "Input border",
+      "default": "#dcdcdc"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button color",
+      "default": "#4a250a"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_color",
+      "label": "Button hover color",
+      "default": "#8b4513"
+    },
+    {
+      "type": "range",
+      "id": "button_hover_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Button hover opacity",
+      "default": 100
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text color",
+      "default": "#fdfbf5"
+    },
+    {
+      "type": "header",
+      "content": "Form styling"
+    },
+    {
+      "type": "range",
+      "id": "input_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Input border radius",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Button border radius",
+      "default": 8
+    }
+  ],
+  "presets": [
+    {
+      "name": "Bulk order form"
+    }
+  ]
+}
+{% endschema %}
