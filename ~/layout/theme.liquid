@@ -1,0 +1,615 @@
+<!doctype html>
+<html class="no-js" lang="{{ request.locale.iso_code }}" style="--announcement-height: 1px;">
+  <head>
+    {% comment %} Load Lora (all weights + italics) {% endcomment %}
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    {% render 'meta-description' %}
+
+    <link rel="canonical" href="{{ canonical_url }}">
+    <link rel="preconnect" href="https://cdn.shopify.com" crossorigin>
+
+    {%- if settings.favicon != blank -%}
+      <link rel="shortcut icon" href="{{ settings.favicon | image_url: width: 32, height: 32 }}" type="image/png">
+    {%- endif -%}
+
+    {%- capture seo_title -%}
+      {%- if request.page_type == 'search' and search.performed == true -%}
+        {{ 'search.heading' | t: count: search.results_count }}:
+        {{ 'search.results_with_count' | t: terms: search.terms, count: search.results_count }}
+      {%- else -%}
+        {{ page_title }}
+      {%- endif -%}
+      {%- if current_tags -%}
+        {%- assign meta_tags = current_tags | join: ', ' -%}
+        &ndash; {{ 'general.meta.tags' | t: tags: meta_tags -}}
+      {%- endif -%}
+      {%- if current_page != 1 -%}
+        &ndash; {{ 'general.meta.page' | t: page: current_page }}
+      {%- endif -%}
+      {%- assign escaped_page_title = page_title | escape -%}
+      {%- unless escaped_page_title contains shop.name -%}
+        &ndash; {{ shop.name }}
+      {%- endunless -%}
+    {%- endcapture -%}
+    <title>{{ seo_title | strip }}</title>
+
+    {% render 'social-meta-tags' %}
+    {% render 'theme-setup' %}
+    {% render 'theme-setting-vars' %}
+    {%- render 'theme-globals' -%}
+
+    {{ content_for_header }}
+    <style>
+  /* ===== Global font switch to Lora ===== */
+
+  /* 1) Theme variables Shopify/Dawn/Stiletto commonly use */
+  :root{
+    --font-body-family: "Lora", serif !important;
+    --font-heading-family: "Lora", serif !important;
+
+    /* Some themes also use these; set them too just in case */
+    --text-font-family: "Lora", serif !important;
+    --heading-font-family: "Lora", serif !important;
+  }
+
+  /* 2) Hard fallback to catch any components not using variables */
+  html, body,
+  h1,h2,h3,h4,h5,h6,
+  p,li,blockquote,small,
+  input,textarea,select,button {
+    font-family: "Lora", serif !important;
+  }
+
+  /* 3) Optional readability tweaks (safe defaults) */
+  body { line-height: 1.6; }
+  h1,h2,h3 { line-height: 1.25; }
+</style>
+
+  </head>
+
+  <body class="template-{{ request.page_type | handle }}">
+    <div class="page">
+      {% if settings.enable_page_transitions %}
+        {% render 'page-transition-overlay' %}
+      {% endif %}
+
+      <div class="theme-editor-scroll-offset"></div>
+      <div class="header__space" data-header-space></div>
+
+      {% sections 'header-group' %}
+      {% sections 'overlay-group' %}
+
+      {%- if settings.enable_quick_search -%}
+        {% render 'quick-search' %}
+      {%- endif -%}
+
+      <div class="header-overlay" data-header-overlay>
+        <div class="header-overlay__inner"></div>
+      </div>
+
+      <main id="main" class="main">
+        {{ content_for_layout }}
+      </main>
+
+      {% sections 'footer-group' %}
+      {% render 'store-availability-drawer' %}
+      {% render 'quick-view-modal' %}
+      {% render 'modal' %}
+      {% render 'back-to-top' %}
+    </div>
+
+    {{ '//www.youtube.com/iframe_api' | script_tag }}
+    {{ '//cdn.shopify.com/shopifycloud/shopify-plyr/v1.0/shopify-plyr.css' | stylesheet_tag }}
+
+    <!-- WhatsApp Chat -->
+    <a href="https://wa.me/91XXXXXXXXXX"
+   class="whatsapp-chat"
+   style="position: fixed; bottom: 4px; right: 20px; z-index: 9999;"
+   target="_blank"
+   aria-label="Chat on WhatsApp">
+
+  <img src="https://cdn.shopify.com/s/files/1/0613/5385/3062/files/whatsapp-removebg-preview.png?v=1757570934"
+       alt="Chat with us on WhatsApp"
+       width="40"
+       height="40"
+       style="border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2);" />
+</a>
+
+    <!-- Compare Modal HTML -->
+    <!-- Compare Modal Table Layout -->
+<div id="compare-modal" style="display:none;position:fixed;top:5%;left:5%;width:90%;height:auto;max-height:85%;background:#fff;overflow:auto;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);padding:20px;z-index:10000;">
+  <span class="close-modal" style="position:absolute;top:10px;right:20px;font-size:20px;cursor:pointer;">&times;</span>
+  <h3 style="margin-bottom:15px;">Compare Products</h3>
+  <div style="overflow-x:auto;">
+    <table id="compare-table" style="width:auto; border-collapse: collapse; min-width:600px;">
+      <thead>
+        <tr id="compare-row-image"></tr>
+        <tr id="compare-row-title"></tr>
+        <tr id="compare-row-price"></tr>
+        <tr id="compare-row-desc"></tr>
+      </thead>
+    </table>
+  </div>
+</div>
+
+
+    <style>
+      .compare-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+      }
+      .modal-content {
+        background: #fff;
+        margin: 5% auto;
+        padding: 20px;
+        max-width: 95%;
+        overflow-x: auto;
+      }
+      .compare-items-container {
+        display: flex;
+        gap: 20px;
+        overflow-x: auto;
+      }
+      .compare-item {
+  width: 250px;
+  border: 1px solid #ddd;
+  padding: 6px;
+  font-size: 14px;
+}
+      .compare-item table th,
+.compare-item table td {
+  padding: 4px 6px;
+  font-size: 13px;
+}
+      .close-modal {
+        float: right;
+        cursor: pointer;
+        font-size: 24px;
+      }
+     @media (max-width: 768px) {
+  .compare-items-container {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .compare-item {
+    min-width: 80vw; /* Ensure each item is visible fully on mobile */
+    flex-shrink: 0;
+  }
+}
+    </style>
+
+    <script src="{{ 'compare.js' | asset_url }}" defer></script>
+    <script src="https://cdn.apps.shopifycdn.com/wishlist-hero/v1/wishlist-hero.min.js" defer></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        function updateFreeShippingBar(cart) {
+          const threshold = 999;
+          const current = cart.total_price / 100;
+          const progress = Math.min((current / threshold) * 100, 100);
+          const remaining = threshold - current;
+
+          const wrapper = document.getElementById("free-shipping-progress");
+          if (!wrapper) return;
+
+          if (current < threshold) {
+            wrapper.innerHTML = `
+              <p>Spend ₹${remaining.toFixed(2)} more for free shipping!</p>
+              <div style="width:100%; background:#e5e5e5; height:8px; border-radius:4px;">
+                <div style="width:${progress}%; background:#22c55e; height:8px;"></div>
+              </div>
+            `;
+          } else {
+            wrapper.innerHTML = `<p class="text-green-600 font-semibold">You’ve unlocked free shipping!</p>`;
+          }
+        }
+
+        function fetchCartAndUpdateBar() {
+          fetch('/cart.js')
+            .then(res => res.json())
+            .then(cart => updateFreeShippingBar(cart));
+        }
+
+        fetchCartAndUpdateBar();
+        document.body.addEventListener('cart:refresh', fetchCartAndUpdateBar);
+      });
+    </script>
+    <style>
+  @media (max-width: 767px) {
+    .about-us__intro h1 {
+      font-size: 28px !important;
+    }
+
+    .about-us__intro p {
+      font-size: 16px !important;
+    }
+
+    .about-us__mission h2,
+    .about-us__media h2,
+    .about-us__team h2 {
+      font-size: 22px !important;
+    }
+
+    .about-us__mission p,
+    .about-us__media p,
+    .about-us__mission ul {
+      font-size: 15px !important;
+    }
+
+    .about-us__team .team-member h4 {
+      font-size: 16px !important;
+    }
+
+    .about-us__team .team-member p {
+      font-size: 13px !important;
+    }
+
+    .grid--3-col {
+      grid-template-columns: 1fr !important;
+      gap: 20px !important;
+    }
+
+    .about-us-page {
+      padding: 40px 20px !important;
+    }
+
+    .about-us__intro,
+    .about-us__mission,
+    .about-us__media,
+    .about-us__team {
+      margin-bottom: 40px !important;
+    }
+
+    .about-us__media video {
+      border-radius: 8px !important;
+    }
+  }
+</style>
+<style>
+  @media (max-width: 767px) {
+    .sticky-cta-mobile {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: #007c6f;
+      text-align: center;
+      z-index: 9999;
+      padding: 12px 20px;
+      box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .sticky-cta-mobile .cta-button {
+      display: inline-block;
+      background-color: #fff;
+      color: #007c6f;
+      font-weight: bold;
+      font-size: 16px;
+      padding: 10px 20px;
+      border-radius: 30px;
+      text-decoration: none;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .sticky-cta-mobile .cta-button:hover {
+      background-color: #f3f3f3;
+    }
+  }
+</style>
+{% if template == 'product' %}
+  <script src="{{ 'compare.js' | asset_url }}" defer></script>
+{% endif %}
+{%- unless request.page_type == 'index' -%}
+  {%- render 'back-to-home' -%}
+{%- endunless -%}
+<style>
+.contact-float {
+  position: fixed;
+  bottom: 60px;
+  right: 20px;
+  width: 40px;                /* circle size */
+  height: 40px;
+  background: #964B00;        /* background color */
+  border-radius: 50%;         /* make circle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+  text-decoration: none;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.contact-float img {
+  width: 80%;                 /* adjust to fit inside circle */
+  height: 80%;
+  object-fit: contain;        /* keep aspect ratio */
+}
+</style>
+
+<!-- Floating Contact Button -->
+<a href="tel:+911234567890" class="contact-float">
+  <img 
+    src="https://cdn.shopify.com/s/files/1/0613/5385/3062/files/Screenshot_2025-09-11_112510-removebg-preview.png?v=1757570358" 
+    alt="Call Us"
+    width="60" 
+    height="60" 
+  />
+</a>
+
+
+<!-- Compare Drawer UI -->
+<div id="compare-drawer" aria-hidden="true">
+  <div class="cmpd-overlay" data-close></div>
+  <aside class="cmpd-panel" role="dialog" aria-modal="true" aria-labelledby="cmpd-title">
+    <header class="cmpd-header">
+      <h3 id="cmpd-title">Compare Products</h3>
+      <button class="cmpd-close" type="button" aria-label="Close" data-close>×</button>
+    </header>
+
+    <div class="cmpd-body">
+      <section class="cmpd-grid-wrap">
+        <h4 class="cmpd-subtitle">Pick products to compare</h4>
+        <div id="cmpd-grid" class="cmpd-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="cmpd-table-wrap" class="cmpd-table-wrap" hidden>
+        <h4 class="cmpd-subtitle">Comparison</h4>
+        <div class="cmpd-table-scroll">
+          <table class="cmpd-table" role="table" aria-label="Product comparison table">
+            <tbody id="cmpd-tbody">
+              <!-- rows will be injected -->
+            </tbody>
+          </table>
+        </div>
+        <p class="cmpd-hint">Tip: select 2–3 products for a clear comparison.</p>
+      </section>
+    </div>
+  </aside>
+</div>
+
+<!-- Floating Compare Button (visible on product pages) -->
+<button id="compare-fab" type="button" aria-label="Open product comparison">Compare</button>
+
+<style>
+  /* ===== Drawer Layout ===== */
+  #compare-drawer{position:fixed;inset:0;z-index:99999;display:none}
+  #compare-drawer[aria-hidden="false"]{display:block}
+  .cmpd-overlay{position:absolute;inset:0;background:rgba(0,0,0,.35);backdrop-filter:saturate(120%) blur(2px)}
+  .cmpd-panel{
+    position:absolute;right:0;top:0;height:100%;width:clamp(320px,38vw,520px);
+    background:#fff;box-shadow:0 0 40px rgba(0,0,0,.18);
+    display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s ease;
+  }
+  #compare-drawer[aria-hidden="false"] .cmpd-panel{transform:translateX(0)}
+  .cmpd-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #eee}
+  .cmpd-header h3{margin:0;font:700 18px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial}
+  .cmpd-close{border:0;background:#f6f6f6;border-radius:8px;width:34px;height:34px;font-size:20px;cursor:pointer}
+  .cmpd-body{padding:14px 14px 16px;overflow:auto;height:100%}
+
+  .cmpd-subtitle{margin:6px 2px 10px;font:700 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;color:#333}
+
+  /* ===== Product Grid ===== */
+  .cmpd-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  @media (max-width: 680px){ .cmpd-grid{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  .cmpd-card{
+    border:1px solid #eee;border-radius:10px;overflow:hidden;background:#fff;
+    display:flex;flex-direction:column;gap:8px;box-shadow:0 6px 18px rgba(0,0,0,.06);
+  }
+  .cmpd-media{aspect-ratio:1/1;background:#fafafa;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .cmpd-media img{width:100%;height:100%;object-fit:cover;display:block}
+  .cmpd-info{padding:8px 10px}
+  .cmpd-title{font:600 13px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Arial;color:#1a1a1a;margin:0 0 6px;height:2.6em;overflow:hidden}
+  .cmpd-meta{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .cmpd-price{font:700 13px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial;color:#4A250A}
+  .cmpd-pick{display:flex;align-items:center;gap:6px;font:600 12px/1 system-ui;color:#333}
+  .cmpd-pick input{width:16px;height:16px}
+
+  /* ===== Table ===== */
+  .cmpd-table-wrap{margin-top:14px;border-top:1px dashed #e8e8e8;padding-top:12px}
+  .cmpd-table-scroll{overflow:auto;border:1px solid #eee;border-radius:10px}
+  .cmpd-table{width:100%;border-collapse:separate;border-spacing:0;min-width:520px}
+  .cmpd-table tbody tr:nth-child(odd){background:#fafafa}
+  .cmpd-table td{padding:10px 12px;border-bottom:1px solid #eee;vertical-align:top}
+  .cmpd-table td:first-child{font-weight:700;width:34%}
+  .cmpd-table img{max-width:76px;max-height:76px;border-radius:8px;display:block;margin:0 auto}
+  .cmpd-table a{color:#111;text-decoration:none}
+  .cmpd-table a:hover{text-decoration:underline}
+  .cmpd-hint{margin:8px 4px 0;color:#777;font:500 12px/1.4 system-ui}
+
+  /* ===== Floating Button ===== */
+  #compare-fab{
+    position:fixed;left:50%;bottom:12px;transform:translateX(-50%);
+    z-index:99998;background:#FFD700;color:#4A250A;border:0;border-radius:8px;
+    font:600 14px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial; padding:10px 14px;
+    box-shadow:0 10px 24px rgba(0,0,0,.18);cursor:pointer;transition:filter .15s ease, transform .15s ease;
+    display:none;
+  }
+  body.template-product #compare-fab{display:block}
+  #compare-fab:hover{filter:brightness(.96)}
+  #compare-fab:active{transform:translateX(-50%) scale(.98)}
+</style>
+
+<script>
+(function(){
+  const isProduct = document.body.classList.contains('template-product');
+  const drawer = document.getElementById('compare-drawer');
+  const overlayCloseEls = drawer.querySelectorAll('[data-close]');
+  const grid = document.getElementById('cmpd-grid');
+  const tableWrap = document.getElementById('cmpd-table-wrap');
+  const tbody = document.getElementById('cmpd-tbody');
+  const fab = document.getElementById('compare-fab');
+
+  /* ---------------- State ---------------- */
+  let selected = JSON.parse(localStorage.getItem('compareList') || '[]'); // array of handles
+  const setSelected = (arr) => {
+    selected = arr.slice(0, 4); // hard cap at 4 columns for readability
+    localStorage.setItem('compareList', JSON.stringify(selected));
+    renderTable();
+    syncChecks();
+  };
+
+  /* ---------------- Open/Close ---------------- */
+  const openDrawer = () => { drawer.setAttribute('aria-hidden','false'); };
+  const closeDrawer = () => {
+  drawer.setAttribute('aria-hidden','true');
+
+  // Clear picks for the next open
+  localStorage.removeItem('compareList');   // wipe persistence
+  setSelected([]);                          // clear in-memory + hide table
+
+  // Uncheck all checkboxes in the grid (if it was loaded)
+  grid.querySelectorAll('.cmpd-check').forEach(i => (i.checked = false));
+};
+
+  overlayCloseEls.forEach(el => el.addEventListener('click', closeDrawer));
+  fab.addEventListener('click', () => {
+    // lazy-load products if grid empty
+    if (!grid.dataset.loaded) loadRandomProducts(24);
+    openDrawer();
+  });
+
+  /* ---------------- Load Products for Grid ---------------- */
+  function loadRandomProducts(limit=24){
+    // Pull up to 50 products (Shopify allows /products.json?limit=…)
+    fetch('/products.json?limit=50')
+      .then(r => r.json())
+      .then(({ products }) => {
+        if (!products || !products.length) return;
+        // randomize
+        products.sort(()=>Math.random() - 0.5);
+        const sample = products.slice(0, limit);
+        grid.innerHTML = sample.map(p => cardHTML(p)).join('');
+        grid.dataset.loaded = '1';
+        grid.querySelectorAll('.cmpd-check').forEach(input => {
+          input.addEventListener('change', onToggleCheck);
+        });
+        syncChecks();
+        renderTable();
+      })
+      .catch(()=>{ grid.innerHTML = '<p style="grid-column:1/-1;color:#888;">Couldn’t load products.</p>'; });
+  }
+
+  function cardHTML(p){
+    const img = (p.images && p.images[0]) ? p.images[0].src : (p.featured_image || '');
+    const price = p.variants && p.variants[0] ? p.variants[0].price : '';
+    const checked = selected.includes(p.handle) ? 'checked' : '';
+    return `
+      <article class="cmpd-card" data-handle="${p.handle}">
+        <div class="cmpd-media">${img ? `<img src="${img}" alt="${escapeHTML(p.title)}">` : ''}</div>
+        <div class="cmpd-info">
+          <p class="cmpd-title">${escapeHTML(p.title)}</p>
+          <div class="cmpd-meta">
+            <span class="cmpd-price">${formatMoney(price)}</span>
+            <label class="cmpd-pick">
+              <input class="cmpd-check" type="checkbox" data-handle="${p.handle}" ${checked}>
+              Pick
+            </label>
+          </div>
+        </div>
+      </article>`;
+  }
+
+  function onToggleCheck(e){
+    const handle = e.target.dataset.handle;
+    if (e.target.checked) {
+      if (!selected.includes(handle)) setSelected([...selected, handle]);
+    } else {
+      setSelected(selected.filter(h => h !== handle));
+    }
+  }
+
+  function syncChecks(){
+    grid.querySelectorAll('.cmpd-check').forEach(input => {
+      input.checked = selected.includes(input.dataset.handle);
+    });
+  }
+
+  /* ---------------- Build Comparison Table ---------------- */
+  function renderTable(){
+    if (!selected.length){
+      tableWrap.hidden = true;
+      return;
+    }
+    tableWrap.hidden = false;
+    tbody.innerHTML = ''; // clear
+    // rows we want to render (in order)
+    const rows = [
+      { key:'image', label:'Image' },
+      { key:'title', label:'Title' },
+      { key:'price', label:'Price' },
+      { key:'vendor', label:'Vendor' },
+      { key:'type', label:'Type' }
+    ];
+
+    // Create skeleton while fetching
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${r.label}</td>` + selected.map(()=>`<td>…</td>`).join('');
+      tbody.appendChild(tr);
+    });
+
+    // Fetch details in parallel
+    Promise.all(selected.map(h => fetch(`/products/${h}.js`).then(r=>r.json())))
+      .then(products => {
+        // fill each row
+        // Image
+        setRowCells('image', products.map(p => {
+          const img = p && p.featured_image ? p.featured_image : '';
+          return img ? `<a href="/products/${p.handle}" target="_blank" rel="noopener">
+            <img src="${img}" alt="${escapeHTML(p.title)}">
+          </a>` : '';
+        }));
+        // Title
+        setRowCells('title', products.map(p => `<a href="/products/${p.handle}" target="_blank" rel="noopener">${escapeHTML(p.title)}</a>`));
+        // Price
+        setRowCells('price', products.map(p => p && p.price ? formatMoney(p.price/100) : (p.compare_at_price ? formatMoney(p.compare_at_price/100) : '—')));
+        // Vendor
+        setRowCells('vendor', products.map(p => escapeHTML(p.vendor || '—')));
+        // Type
+        setRowCells('type', products.map(p => escapeHTML(p.type || '—')));
+      })
+      .catch(()=>{/* ignore */});
+  }
+
+  function setRowCells(key, htmlArr){
+    const trs = Array.from(tbody.querySelectorAll('tr'));
+    const map = { image:0, title:1, price:2, vendor:3, type:4, desc:5 };
+    const idx = map[key];
+    if (trs[idx]) {
+      const tds = trs[idx].querySelectorAll('td');
+      // first cell is the label, fill subsequent
+      htmlArr.forEach((html, i) => { if (tds[i+1]) tds[i+1].innerHTML = html; });
+    }
+  }
+
+  /* ---------------- Utils ---------------- */
+  function formatMoney(v){
+    if (!v) return '—';
+    const n = typeof v === 'string' ? parseFloat(v) : v;
+    if (isNaN(n)) return '—';
+    // INR formatting
+    return '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  }
+  function escapeHTML(s){ return (s||'').toString().replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+  /* ---------------- Close by ESC ---------------- */
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeDrawer(); });
+
+})();
+</script>
+  </body>
+  <link rel="preload" fetchpriority="low" href="{{ 'theme-deferred.css' | asset_url }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="{{ 'theme-deferred.css' | asset_url }}"></noscript>
+</html>
