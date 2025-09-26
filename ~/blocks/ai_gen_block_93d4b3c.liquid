@@ -420,30 +420,38 @@
       {% endcomment %}
 
       {%- comment -%} WITH THIS NEW, CORRECTED BLOCK {%- endcomment -%}
+
+      {% comment %} {% liquid
+        assign bulk_product_handle = request.params.product
+        assign bulk_variant_id = request.params.variant
+
+        if bulk_product_handle != blank
+          assign bulk_product = all_products[bulk_product_handle]
+        else
+          assign bulk_product = null
+        endif
+
+        assign bulk_variant = null
+        if bulk_product
+          if bulk_variant_id != blank
+            assign bulk_variant_id_number = bulk_variant_id | times: 1
+            assign bulk_variant = bulk_product.variants | where: 'id', bulk_variant_id_number | first
+          endif
+
+          if bulk_variant == null
+            assign bulk_variant = bulk_product.selected_or_first_available_variant
+          endif
+        endif
+      %} {% endcomment %}
+
+{%- comment -%} THIS IS THE NEW, CORRECTED CODE {%- endcomment -%}
 {% liquid
-  assign bulk_product_handle = request.params.product
-  assign bulk_variant_id = request.params.variant
-
-  if bulk_product_handle != blank
-    assign bulk_product = all_products[bulk_product_handle]
-  else
-    assign bulk_product = null
-  endif
-
-  assign bulk_variant = null
-  if bulk_product
-    if bulk_variant_id != blank
-      assign bulk_variant_id_number = bulk_variant_id | times: 1
-      assign bulk_variant = bulk_product.variants | where: 'id', bulk_variant_id_number | first
-    endif
-
-    if bulk_variant == null
-      assign bulk_variant = bulk_product.selected_or_first_available_variant
-    endif
-  endif
+  assign product_title = request.params.title
+  assign product_sku = request.params.sku
+  assign image_url = request.params.image
 %}
 
-      {% if bulk_product and bulk_product.featured_image %}
+      {% comment %} {% if bulk_product and bulk_product.featured_image %}
         <img
           src="{{ bulk_product.featured_image | image_url: width: 1200 }}"
           alt="{{ bulk_product.featured_image.alt | escape }}"
@@ -470,7 +478,38 @@
           {{ 'product-1' | placeholder_svg_tag }}
           <div class="ai-bulk-order-empty-state-{{ ai_gen_id }}">Product image will appear here</div>
         </div>
-      {% endif %}
+      {% endif %} {% endcomment %}
+
+{%- comment -%} AND REPLACE IT WITH THIS {%- endcomment -%}
+
+{% if image_url != blank %}
+  <img
+    src="{{ image_url }}"
+    alt="{{ product_title | escape }}"
+    class="ai-bulk-order-image-{{ ai_gen_id }}"
+    loading="lazy"
+    width="1200"
+    height="1200"
+  >
+  <div class="ai-bulk-order-product-badge-{{ ai_gen_id }}">
+    <h3 class="ai-bulk-order-product-title-{{ ai_gen_id }}">{{ product_title }}</h3>
+  </div>
+{% elsif block.settings.fallback_image %}
+  <img
+    src="{{ block.settings.fallback_image | image_url: width: 1200 }}"
+    alt="{{ block.settings.fallback_image.alt | escape }}"
+    class="ai-bulk-order-image-{{ ai_gen_id }}"
+    loading="lazy"
+    width="{{ block.settings.fallback_image.width }}"
+    height="{{ block.settings.fallback_image.height }}"
+  >
+{% else %}
+  <div class="ai-bulk-order-image-placeholder-{{ ai_gen_id }}">
+    {{ 'product-1' | placeholder_svg_tag }}
+    <div class="ai-bulk-order-empty-state-{{ ai_gen_id }}">Product image will appear here</div>
+  </div>
+{% endif %}
+
       <div class="ai-bulk-order-image-overlay-{{ ai_gen_id }}"></div>
     </div>
   </div>
@@ -482,11 +521,160 @@
         <p class="ai-bulk-order-form-subtitle-{{ ai_gen_id }}">{{ block.settings.form_subtitle }}</p>
       </div>
 
-      {% comment %} {%- form 'contact' -%}
+      {% comment %}
+        {%- form 'contact' -%}
+          <input type="hidden" name="contact[form_type]" value="bulk_order">
+          {% if bulk_product %}
+            <input type="hidden" name="contact[product_id]" value="{{ bulk_product.id }}">
+            <input type="hidden" name="contact[product_handle]" value="{{ bulk_product.handle }}">
+          {% endif %}
+
+          <div class="ai-bulk-order-form-{{ ai_gen_id }}">
+            <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
+              <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+                <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Product Name </label>
+                <input
+                  type="text"
+                  name="contact[product_sku]"
+                  class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                  value="{{ bulk_variant.sku | default: 'N/A' }}"
+                  readonly
+                >
+              </div>
+              <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+                <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> SKU </label>
+                <input
+                  type="text"
+                  name="contact[product_sku]"
+                  class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                  value="{{ bulk_product.selected_variant.sku | default: bulk_product.variants.first.sku | default: 'N/A' }}"
+                  readonly
+                >
+              </div>
+            </div>
+
+            <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
+              <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+                <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+                  Your Name <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="contact[name]"
+                  class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                  value="{{ form.name }}"
+                  required
+                  {% if form.errors contains 'name' %}
+                    aria-invalid="true"
+                    aria-describedby="ai-bulk-order-name-error-{{ ai_gen_id }}"
+                  {% endif %}
+                >
+                {%- if form.errors contains 'name' -%}
+                  <div id="ai-bulk-order-name-error-{{ ai_gen_id }}" class="ai-bulk-order-error-message-{{ ai_gen_id }}">
+                    {{ form.errors.messages.name }}
+                  </div>
+                {%- endif -%}
+              </div>
+              <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+                <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+                  Email <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="contact[email]"
+                  class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                  value="{{ form.email }}"
+                  required
+                  {% if form.errors contains 'email' %}
+                    aria-invalid="true"
+                    aria-describedby="ai-bulk-order-email-error-{{ ai_gen_id }}"
+                  {% endif %}
+                >
+                {%- if form.errors contains 'email' -%}
+                  <div id="ai-bulk-order-email-error-{{ ai_gen_id }}" class="ai-bulk-order-error-message-{{ ai_gen_id }}">
+                    {{ form.errors.messages.email }}
+                  </div>
+                {%- endif -%}
+              </div>
+            </div>
+
+            <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
+              <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+                <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Contact Number </label>
+                <input
+                  type="tel"
+                  name="contact[phone]"
+                  class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                  value="{{ form.phone }}"
+                >
+              </div>
+              <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+                <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+                  Quantity Required <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="contact[quantity]"
+                  class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                  min="1"
+                  placeholder="Enter quantity"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
+              <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+                <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
+                  Order Type <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
+                </label>
+                <select
+                  name="contact[order_type]"
+                  class="ai-bulk-order-form-select-{{ ai_gen_id }}"
+                  required
+                >
+                  <option value="">Select order type</option>
+                  <option value="bulk_order">Bulk Order</option>
+                  <option value="corporate_gifts">Corporate Gifts</option>
+                  <option value="personalised_gifts">Personalised Gifts</option>
+                </select>
+              </div>
+              <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+                <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Expected Delivery Date </label>
+                <input
+                  type="text"
+                  name="contact[delivery_date]"
+                  class="ai-bulk-order-form-input-{{ ai_gen_id }}"
+                  placeholder="DD/MM/YYYY"
+                >
+              </div>
+            </div>
+
+            <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
+              <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Your Message </label>
+              <textarea
+                name="contact[message]"
+                class="ai-bulk-order-form-textarea-{{ ai_gen_id }}"
+                placeholder="Tell us about your requirements, customization needs, or any special requests..."
+              ></textarea>
+            </div>
+
+            <button
+              type="submit"
+              class="ai-bulk-order-form-button-{{ ai_gen_id }}"
+            >
+              {{ block.settings.button_text }}
+            </button>
+          </div>
+        {%- endform -%}
+      {% endcomment %}
+
+      {%- form 'contact' -%}
         <input type="hidden" name="contact[form_type]" value="bulk_order">
         {% if bulk_product %}
           <input type="hidden" name="contact[product_id]" value="{{ bulk_product.id }}">
           <input type="hidden" name="contact[product_handle]" value="{{ bulk_product.handle }}">
+          <input type="hidden" name="contact[variant_id]" value="{{ bulk_variant.id }}">
         {% endif %}
 
         <div class="ai-bulk-order-form-{{ ai_gen_id }}">
@@ -495,9 +683,9 @@
               <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Product Name </label>
               <input
                 type="text"
-                name="contact[product_sku]"
+                name="contact[product_name]"
                 class="ai-bulk-order-form-input-{{ ai_gen_id }}"
-                value="{{ bulk_variant.sku | default: 'N/A' }}"
+                value="{{ product_title | default: 'N/A' }}"
                 readonly
               >
             </div>
@@ -507,7 +695,7 @@
                 type="text"
                 name="contact[product_sku]"
                 class="ai-bulk-order-form-input-{{ ai_gen_id }}"
-                value="{{ bulk_product.selected_variant.sku | default: bulk_product.variants.first.sku | default: 'N/A' }}"
+                value="{{ product_sku | default: 'N/A' }}"
                 readonly
               >
             </div>
@@ -626,159 +814,7 @@
             {{ block.settings.button_text }}
           </button>
         </div>
-      {%- endform -%} {% endcomment %}
-
-{%- form 'contact' -%}
-  <input type="hidden" name="contact[form_type]" value="bulk_order">
-  {% if bulk_product %}
-    <input type="hidden" name="contact[product_id]" value="{{ bulk_product.id }}">
-    <input type="hidden" name="contact[product_handle]" value="{{ bulk_product.handle }}">
-    <input type="hidden" name="contact[variant_id]" value="{{ bulk_variant.id }}">
-  {% endif %}
-
-  <div class="ai-bulk-order-form-{{ ai_gen_id }}">
-    <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
-      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
-        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
-          Product Name
-        </label>
-        <input
-          type="text"
-          name="contact[product_name]"
-          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
-          value="{{ bulk_product.title | default: 'N/A' }}"
-          readonly
-        >
-      </div>
-      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
-        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
-          SKU
-        </label>
-        <input
-          type="text"
-          name="contact[product_sku]"
-          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
-          value="{{ bulk_variant.sku | default: 'N/A' }}"
-          readonly
-        >
-      </div>
-    </div>
-
-    <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
-      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
-        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
-          Your Name <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
-        </label>
-        <input
-          type="text"
-          name="contact[name]"
-          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
-          value="{{ form.name }}"
-          required
-          {% if form.errors contains 'name' %}
-            aria-invalid="true"
-            aria-describedby="ai-bulk-order-name-error-{{ ai_gen_id }}"
-          {% endif %}
-        >
-        {%- if form.errors contains 'name' -%}
-          <div id="ai-bulk-order-name-error-{{ ai_gen_id }}" class="ai-bulk-order-error-message-{{ ai_gen_id }}">
-            {{ form.errors.messages.name }}
-          </div>
-        {%- endif -%}
-      </div>
-      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
-        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
-          Email <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
-        </label>
-        <input
-          type="email"
-          name="contact[email]"
-          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
-          value="{{ form.email }}"
-          required
-          {% if form.errors contains 'email' %}
-            aria-invalid="true"
-            aria-describedby="ai-bulk-order-email-error-{{ ai_gen_id }}"
-          {% endif %}
-        >
-        {%- if form.errors contains 'email' -%}
-          <div id="ai-bulk-order-email-error-{{ ai_gen_id }}" class="ai-bulk-order-error-message-{{ ai_gen_id }}">
-            {{ form.errors.messages.email }}
-          </div>
-        {%- endif -%}
-      </div>
-    </div>
-
-    <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
-      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
-        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Contact Number </label>
-        <input
-          type="tel"
-          name="contact[phone]"
-          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
-          value="{{ form.phone }}"
-        >
-      </div>
-      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
-        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
-          Quantity Required <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
-        </label>
-        <input
-          type="number"
-          name="contact[quantity]"
-          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
-          min="1"
-          placeholder="Enter quantity"
-          required
-        >
-      </div>
-    </div>
-
-    <div class="ai-bulk-order-form-row-{{ ai_gen_id }}">
-      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
-        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}">
-          Order Type <span class="ai-bulk-order-form-required-{{ ai_gen_id }}">*</span>
-        </label>
-        <select
-          name="contact[order_type]"
-          class="ai-bulk-order-form-select-{{ ai_gen_id }}"
-          required
-        >
-          <option value="">Select order type</option>
-          <option value="bulk_order">Bulk Order</option>
-          <option value="corporate_gifts">Corporate Gifts</option>
-          <option value="personalised_gifts">Personalised Gifts</option>
-        </select>
-      </div>
-      <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
-        <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Expected Delivery Date </label>
-        <input
-          type="text"
-          name="contact[delivery_date]"
-          class="ai-bulk-order-form-input-{{ ai_gen_id }}"
-          placeholder="DD/MM/YYYY"
-        >
-      </div>
-    </div>
-
-    <div class="ai-bulk-order-form-group-{{ ai_gen_id }}">
-      <label class="ai-bulk-order-form-label-{{ ai_gen_id }}"> Your Message </label>
-      <textarea
-        name="contact[message]"
-        class="ai-bulk-order-form-textarea-{{ ai_gen_id }}"
-        placeholder="Tell us about your requirements, customization needs, or any special requests..."
-      ></textarea>
-    </div>
-
-    <button
-      type="submit"
-      class="ai-bulk-order-form-button-{{ ai_gen_id }}"
-    >
-      {{ block.settings.button_text }}
-    </button>
-  </div>
-{%- endform -%}
-
+      {%- endform -%}
     </div>
   </div>
 
